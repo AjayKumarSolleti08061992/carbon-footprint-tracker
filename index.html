@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Carbon Footprint Tracker</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg-primary: #ffffff;
+      --bg-secondary: #f5f5f3;
+      --bg-tertiary: #eeede9;
+      --text-primary: #1a1a18;
+      --text-secondary: #6b6b66;
+      --text-tertiary: #9e9e99;
+      --border: rgba(0,0,0,0.12);
+      --border-md: rgba(0,0,0,0.22);
+      --green: #1D9E75;
+      --green-light: #E1F5EE;
+      --green-dark: #0F6E56;
+      --amber: #BA7517;
+      --amber-light: #FAEEDA;
+      --blue: #378ADD;
+      --blue-light: #E6F1FB;
+      --radius-md: 8px;
+      --radius-lg: 12px;
+      --radius-xl: 16px;
+      --font: 'Inter', system-ui, -apple-system, sans-serif;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg-primary: #1c1c1a;
+        --bg-secondary: #242422;
+        --bg-tertiary: #2e2e2b;
+        --text-primary: #f0efe9;
+        --text-secondary: #a8a89f;
+        --text-tertiary: #6e6e68;
+        --border: rgba(255,255,255,0.10);
+        --border-md: rgba(255,255,255,0.20);
+        --green-light: #04342C;
+        --amber-light: #412402;
+        --blue-light: #042C53;
+      }
+    }
+
+    body {
+      font-family: var(--font);
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+      min-height: 100vh;
+      padding: 1.5rem 1rem 3rem;
+    }
+
+    .container { max-width: 720px; margin: 0 auto; }
+
+    /* Header */
+    .header { display: flex; align-items: center; gap: 10px; margin-bottom: 1.5rem; }
+    .header-icon { font-size: 26px; color: var(--green); }
+    .header h1 { font-size: 22px; font-weight: 500; color: var(--text-primary); }
+    .badge { display: inline-block; font-size: 11px; padding: 3px 9px; border-radius: var(--radius-md); margin-left: 8px; background: var(--green-light); color: var(--green-dark); font-weight: 500; }
+
+    /* Tab bar */
+    .tab-bar {
+      display: flex; gap: 2px; margin-bottom: 1.5rem;
+      border-bottom: 0.5px solid var(--border);
+      overflow-x: auto; -webkit-overflow-scrolling: touch;
+    }
+    .tab-bar::-webkit-scrollbar { display: none; }
+    .tab {
+      padding: 9px 16px; font-size: 14px; color: var(--text-secondary);
+      cursor: pointer; border: none; background: none;
+      border-bottom: 2px solid transparent; margin-bottom: -1px;
+      white-space: nowrap; display: flex; align-items: center; gap: 6px;
+      transition: color 0.15s;
+    }
+    .tab:hover { color: var(--text-primary); }
+    .tab.active { color: var(--text-primary); border-bottom-color: var(--green); font-weight: 500; }
+
+    /* Sections */
+    .section { display: none; }
+    .section.active { display: block; }
+
+    /* Metric grid */
+    .metric-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 1.5rem; }
+    .metric-card { background: var(--bg-secondary); border-radius: var(--radius-md); padding: 1rem; }
+    .metric-label { font-size: 12px; color: var(--text-secondary); margin-bottom: 6px; }
+    .metric-value { font-size: 24px; font-weight: 500; color: var(--text-primary); line-height: 1.1; }
+    .metric-sub { font-size: 11px; color: var(--text-tertiary); margin-top: 3px; }
+
+    /* Cards */
+    .card {
+      background: var(--bg-primary); border: 0.5px solid var(--border);
+      border-radius: var(--radius-lg); padding: 1rem 1.25rem; margin-bottom: 1rem;
+    }
+    .card-title { font-size: 11px; font-weight: 500; color: var(--text-secondary); margin-bottom: 1rem; text-transform: uppercase; letter-spacing: 0.06em; display: flex; align-items: center; gap: 6px; }
+
+    /* Bar chart rows */
+    .bar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+    .bar-label { font-size: 13px; color: var(--text-secondary); min-width: 90px; }
+    .bar-track { flex: 1; height: 8px; background: var(--bg-secondary); border-radius: 4px; overflow: hidden; }
+    .bar-fill { height: 100%; border-radius: 4px; transition: width 0.4s ease; }
+    .bar-num { font-size: 12px; color: var(--text-secondary); min-width: 40px; text-align: right; }
+
+    /* Sliders */
+    .slider-row { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+    .slider-label { font-size: 13px; color: var(--text-secondary); min-width: 140px; }
+    .slider-row input[type=range] {
+      flex: 1; height: 4px; -webkit-appearance: none; appearance: none;
+      background: var(--bg-secondary); border-radius: 2px; outline: none; cursor: pointer;
+    }
+    .slider-row input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none; width: 18px; height: 18px;
+      border-radius: 50%; background: var(--green); border: 2px solid var(--bg-primary);
+      box-shadow: 0 0 0 1px var(--green);
+    }
+    .slider-val { font-size: 13px; font-weight: 500; min-width: 60px; text-align: right; color: var(--text-primary); }
+
+    /* Actions */
+    .action-item {
+      display: flex; align-items: flex-start; gap: 12px; padding: 12px;
+      background: var(--bg-secondary); border-radius: var(--radius-md);
+      cursor: pointer; transition: background 0.15s; margin-bottom: 8px;
+    }
+    .action-item:hover { background: var(--bg-tertiary); }
+    .action-item.done { opacity: 0.55; }
+    .action-check {
+      width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid var(--border-md);
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px;
+      transition: all 0.15s;
+    }
+    .action-item.done .action-check { background: var(--green); border-color: var(--green); }
+    .action-title { font-size: 14px; font-weight: 500; color: var(--text-primary); margin-bottom: 2px; }
+    .action-desc { font-size: 12px; color: var(--text-secondary); margin-bottom: 3px; }
+    .action-save { font-size: 12px; font-weight: 500; color: var(--green-dark); }
+
+    /* Insights */
+    .insight-card {
+      border-left: 3px solid var(--green); background: var(--bg-secondary);
+      padding: 12px 14px; margin-bottom: 10px; border-radius: 0 var(--radius-md) var(--radius-md) 0;
+    }
+    .insight-card.warn { border-left-color: var(--amber); }
+    .insight-card.tip { border-left-color: var(--blue); }
+    .insight-title { font-size: 13px; font-weight: 500; color: var(--text-primary); margin-bottom: 4px; }
+    .insight-body { font-size: 13px; color: var(--text-secondary); line-height: 1.6; }
+
+    /* Compare */
+    .compare-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 1rem; }
+    .compare-col { text-align: center; }
+    .compare-head { font-size: 11px; color: var(--text-secondary); padding: 6px 4px; }
+    .compare-val { font-size: 20px; font-weight: 500; padding: 4px; }
+    .compare-sub { font-size: 10px; color: var(--text-tertiary); }
+    .you-val { color: var(--green); }
+
+    /* Calc total */
+    .calc-footer {
+      background: var(--bg-secondary); border-radius: var(--radius-md);
+      padding: 1rem 1.25rem; margin-top: 1rem;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .calc-total-label { font-size: 13px; color: var(--text-secondary); margin-bottom: 4px; }
+    .calc-total-val { font-size: 30px; font-weight: 500; color: var(--green); }
+    .calc-total-unit { font-size: 14px; color: var(--text-secondary); }
+
+    /* Buttons */
+    button.cta {
+      padding: 8px 16px; font-size: 13px; font-weight: 500;
+      border: 0.5px solid var(--border-md); border-radius: var(--radius-md);
+      background: var(--bg-primary); color: var(--text-primary); cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+    }
+    button.cta:hover { background: var(--bg-secondary); }
+    button.cta:active { transform: scale(0.98); }
+
+    /* Chart legend */
+    .chart-legend { display: flex; gap: 16px; margin-bottom: 8px; flex-wrap: wrap; }
+    .legend-item { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--text-secondary); }
+    .legend-dot { width: 10px; height: 10px; border-radius: 2px; }
+
+    /* Footer note */
+    .footer-note { font-size: 12px; color: var(--text-tertiary); text-align: center; margin-top: 2rem; line-height: 1.6; }
+
+    @media (max-width: 480px) {
+      .slider-label { min-width: 100px; }
+      .metric-grid { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <i class="ti ti-leaf header-icon" aria-hidden="true"></i>
+    <h1>My carbon footprint <span class="badge" id="trend-badge">↓ 12% this month</span></h1>
+  </div>
+
+  <div class="tab-bar" role="tablist" aria-label="Navigation">
+    <button class="tab active" role="tab" aria-selected="true" onclick="showTab('overview', this)">
+      <i class="ti ti-chart-pie" aria-hidden="true"></i> Overview
+    </button>
+    <button class="tab" role="tab" aria-selected="false" onclick="showTab('track', this)">
+      <i class="ti ti-adjustments" aria-hidden="true"></i> Track
+    </button>
+    <button class="tab" role="tab" aria-selected="false" onclick="showTab('actions', this)">
+      <i class="ti ti-checklist" aria-hidden="true"></i> Actions
+    </button>
+    <button class="tab" role="tab" aria-selected="false" onclick="showTab('insights', this)">
+      <i class="ti ti-bulb" aria-hidden="true"></i> Insights
+    </button>
+  </div>
+
+  <!-- OVERVIEW -->
+  <div class="section active" id="tab-overview" role="tabpanel">
+    <div class="metric-grid">
+      <div class="metric-card">
+        <div class="metric-label">Your footprint</div>
+        <div class="metric-value" id="total-val">7.2</div>
+        <div class="metric-sub">tonnes CO₂e / year</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Global avg</div>
+        <div class="metric-value">4.8</div>
+        <div class="metric-sub">tonnes CO₂e / year</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">1.5°C target</div>
+        <div class="metric-value">2.5</div>
+        <div class="metric-sub">tonnes CO₂e / year</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Actions done</div>
+        <div class="metric-value" id="actions-done-val">2</div>
+        <div class="metric-sub">of 6 this week</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><i class="ti ti-layout-distribute-horizontal" aria-hidden="true"></i> Emissions breakdown</div>
+      <div id="breakdown-bars"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><i class="ti ti-users" aria-hidden="true"></i> How you compare</div>
+      <div class="compare-grid">
+        <div class="compare-col">
+          <div class="compare-head">You</div>
+          <div class="compare-val you-val" id="cmp-you">7.2</div>
+          <div class="compare-sub">tonnes</div>
+        </div>
+        <div class="compare-col">
+          <div class="compare-head">India avg</div>
+          <div class="compare-val" style="color:var(--text-secondary);">1.9</div>
+          <div class="compare-sub">tonnes</div>
+        </div>
+        <div class="compare-col">
+          <div class="compare-head">World avg</div>
+          <div class="compare-val" style="color:var(--text-secondary);">4.8</div>
+          <div class="compare-sub">tonnes</div>
+        </div>
+      </div>
+      <div class="chart-legend">
+        <span class="legend-item"><span class="legend-dot" style="background:#1D9E75;"></span> Your trend</span>
+        <span class="legend-item"><span class="legend-dot" style="background:#B4B2A9;"></span> World avg</span>
+      </div>
+      <div style="position:relative; height:200px;">
+        <canvas id="trendChart" role="img" aria-label="Line chart of monthly carbon emissions, declining from 8.1 to 6.4 tonnes over 12 months">Monthly emissions from Jan to Dec showing a gradual decline from 8.1 to 6.4 tonnes.</canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- TRACK -->
+  <div class="section" id="tab-track" role="tabpanel">
+    <div class="card">
+      <div class="card-title"><i class="ti ti-car" aria-hidden="true"></i> Transport</div>
+      <div class="slider-row">
+        <label class="slider-label" for="sl-car">Car km / week</label>
+        <input type="range" min="0" max="500" step="10" value="200" id="sl-car" oninput="updateCalc()">
+        <span class="slider-val" id="out-car">200 km</span>
+      </div>
+      <div class="slider-row">
+        <label class="slider-label" for="sl-fly">Flights / year</label>
+        <input type="range" min="0" max="20" step="1" value="3" id="sl-fly" oninput="updateCalc()">
+        <span class="slider-val" id="out-fly">3</span>
+      </div>
+      <div class="slider-row">
+        <label class="slider-label" for="sl-transit">Public transit use</label>
+        <input type="range" min="0" max="100" step="5" value="30" id="sl-transit" oninput="updateCalc()">
+        <span class="slider-val" id="out-transit">30%</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><i class="ti ti-home" aria-hidden="true"></i> Home energy</div>
+      <div class="slider-row">
+        <label class="slider-label" for="sl-elec">Electricity kWh / mo</label>
+        <input type="range" min="0" max="1000" step="20" value="300" id="sl-elec" oninput="updateCalc()">
+        <span class="slider-val" id="out-elec">300</span>
+      </div>
+      <div class="slider-row">
+        <label class="slider-label" for="sl-gas">Gas / LPG use</label>
+        <input type="range" min="0" max="5" step="1" value="2" id="sl-gas" oninput="updateCalc()">
+        <span class="slider-val" id="out-gas">Medium</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><i class="ti ti-salad" aria-hidden="true"></i> Diet &amp; lifestyle</div>
+      <div class="slider-row">
+        <label class="slider-label" for="sl-meat">Meat meals / week</label>
+        <input type="range" min="0" max="21" step="1" value="7" id="sl-meat" oninput="updateCalc()">
+        <span class="slider-val" id="out-meat">7</span>
+      </div>
+      <div class="slider-row">
+        <label class="slider-label" for="sl-shop">Shopping spend / mo</label>
+        <input type="range" min="0" max="500" step="10" value="150" id="sl-shop" oninput="updateCalc()">
+        <span class="slider-val" id="out-shop">₹150</span>
+      </div>
+    </div>
+
+    <div class="calc-footer">
+      <div>
+        <div class="calc-total-label">Estimated footprint</div>
+        <div class="calc-total-val">7.2 <span class="calc-total-unit">t CO₂e / yr</span></div>
+      </div>
+      <button class="cta" onclick="alert('Tip: Your biggest lever is reducing flights. One fewer long-haul trip saves more than 6 months of driving emissions.')">
+        Get tips
+      </button>
+    </div>
+  </div>
+
+  <!-- ACTIONS -->
+  <div class="section" id="tab-actions" role="tabpanel">
+    <p style="font-size:13px; color:var(--text-secondary); margin-bottom:1rem;">Tap an action to mark it done. Small changes add up.</p>
+    <div id="action-list"></div>
+  </div>
+
+  <!-- INSIGHTS -->
+  <div class="section" id="tab-insights" role="tabpanel">
+    <div id="insights-list"></div>
+  </div>
+
+  <p class="footer-note">
+    Emissions estimates are approximate, based on global average emission factors.<br>
+    Data is stored locally in your browser — nothing is sent to any server.
+  </p>
+
+</div>
+
+<script>
+  const categories = [
+    { name: 'Transport', color: '#5DCAA5', base: 2.8 },
+    { name: 'Flights',   color: '#D85A30', base: 1.6 },
+    { name: 'Home energy', color: '#EF9F27', base: 1.2 },
+    { name: 'Diet',      color: '#85B7EB', base: 0.9 },
+    { name: 'Shopping',  color: '#AFA9EC', base: 0.7 },
+  ];
+
+  const actions = [
+    { id:'a1', title:'Take public transit today',     desc:'Bus or metro instead of driving',          save:'~0.8 kg CO₂ saved', done:true  },
+    { id:'a2', title:'Eat a plant-based meal',        desc:'Skip meat at one meal this week',          save:'~2.5 kg CO₂ saved', done:true  },
+    { id:'a3', title:'Unplug idle electronics',       desc:'Standby power is often overlooked',        save:'~0.3 kg CO₂ saved', done:false },
+    { id:'a4', title:'Wash clothes in cold water',    desc:'90% of washing energy is just heating',    save:'~0.6 kg CO₂ saved', done:false },
+    { id:'a5', title:'Buy local produce this week',   desc:'Less transport = lower food miles',         save:'~1.0 kg CO₂ saved', done:false },
+    { id:'a6', title:'Turn off AC 1 hour earlier',    desc:'Air conditioning is a big home emitter',   save:'~0.5 kg CO₂ saved', done:false },
+  ];
+
+  const insights = [
+    { type:'warn', title:'Your biggest lever: flights',     body:'Your 3 flights/year account for over 22% of your footprint. One fewer long-haul flight saves more than 6 months of driving.' },
+    { type:'tip',  title:'Switch to an EV or hybrid',       body:'If you drive 200 km/week, moving to an electric vehicle could cut your transport emissions by up to 70%, saving ~2 t CO₂ annually.' },
+    { type:'',     title:'Diet is easier than you think',   body:'Replacing 3 meat meals/week with plant-based options saves ~0.5 t CO₂e per year — more than most people save from recycling.' },
+    { type:'tip',  title:'Rooftop solar potential',         body:'With ~300 sunny days/year in Hyderabad, a 3 kW solar system could eliminate your home electricity emissions and pay back in ~5 years.' },
+    { type:'warn', title:'Fast fashion footprint',          body:'Your shopping spend suggests ~0.7 t CO₂ annually. Buying second-hand or choosing longer-lasting items is one of the fastest wins.' },
+  ];
+
+  const gasLabels = ['None','Low','Medium','High','Very high','Max'];
+
+  function showTab(name, btn) {
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.tab').forEach(t => { t.classList.remove('active'); t.setAttribute('aria-selected','false'); });
+    document.getElementById('tab-' + name).classList.add('active');
+    btn.classList.add('active');
+    btn.setAttribute('aria-selected','true');
+  }
+
+  function renderBreakdown() {
+    const total = categories.reduce((s, c) => s + c.base, 0);
+    document.getElementById('breakdown-bars').innerHTML = categories.map(c => `
+      <div class="bar-row">
+        <span class="bar-label">${c.name}</span>
+        <div class="bar-track"><div class="bar-fill" style="width:${(c.base/total*100).toFixed(1)}%;background:${c.color};"></div></div>
+        <span class="bar-num">${c.base.toFixed(1)} t</span>
+      </div>`).join('');
+  }
+
+  function renderActions() {
+    document.getElementById('action-list').innerHTML = actions.map(a => `
+      <div class="action-item ${a.done ? 'done' : ''}" id="ai-${a.id}" onclick="toggleAction('${a.id}')" role="button" tabindex="0" aria-pressed="${a.done}">
+        <div class="action-check">${a.done ? '<i class="ti ti-check" style="font-size:13px;color:#fff;" aria-hidden="true"></i>' : ''}</div>
+        <div>
+          <div class="action-title">${a.title}</div>
+          <div class="action-desc">${a.desc}</div>
+          <div class="action-save">${a.save}</div>
+        </div>
+      </div>`).join('');
+    document.getElementById('actions-done-val').textContent = actions.filter(a => a.done).length;
+  }
+
+  function toggleAction(id) {
+    const a = actions.find(x => x.id === id);
+    a.done = !a.done;
+    renderActions();
+  }
+
+  function renderInsights() {
+    document.getElementById('insights-list').innerHTML = insights.map(i => `
+      <div class="insight-card ${i.type}">
+        <div class="insight-title">${i.title}</div>
+        <div class="insight-body">${i.body}</div>
+      </div>`).join('');
+  }
+
+  function updateCalc() {
+    const car     = +document.getElementById('sl-car').value;
+    const fly     = +document.getElementById('sl-fly').value;
+    const transit = +document.getElementById('sl-transit').value;
+    const elec    = +document.getElementById('sl-elec').value;
+    const gas     = +document.getElementById('sl-gas').value;
+    const meat    = +document.getElementById('sl-meat').value;
+    const shop    = +document.getElementById('sl-shop').value;
+
+    document.getElementById('out-car').textContent     = car + ' km';
+    document.getElementById('out-fly').textContent     = fly;
+    document.getElementById('out-transit').textContent = transit + '%';
+    document.getElementById('out-elec').textContent    = elec;
+    document.getElementById('out-gas').textContent     = gasLabels[gas] || 'Medium';
+    document.getElementById('out-meat').textContent    = meat;
+    document.getElementById('out-shop').textContent    = '₹' + shop;
+
+    const transport = (car * 0.00021 * 52 * (1 - transit / 100)) + (fly * 0.5);
+    const home      = (elec * 0.00082 * 12) + (gas * 0.3);
+    const diet      = meat * 0.0025 * 52;
+    const shopping  = shop * 0.001 * 12;
+    const total     = transport + home + diet + shopping;
+
+    document.querySelector('.calc-total-val').innerHTML =
+      total.toFixed(1) + ' <span class="calc-total-unit">t CO₂e / yr</span>';
+    document.getElementById('total-val').textContent = total.toFixed(1);
+    document.getElementById('cmp-you').textContent   = total.toFixed(1);
+
+    categories[0].base = Math.max(0.1, transport - (fly * 0.5));
+    categories[1].base = Math.max(0.1, fly * 0.5);
+    categories[2].base = Math.max(0.1, home);
+    categories[3].base = Math.max(0.1, diet);
+    categories[4].base = Math.max(0.1, shopping);
+    renderBreakdown();
+  }
+
+  // Trend chart
+  const trendData = [8.1, 7.9, 8.3, 7.8, 7.6, 7.4, 7.5, 7.2, 7.0, 6.9, 6.7, 6.4];
+  new Chart(document.getElementById('trendChart').getContext('2d'), {
+    type: 'line',
+    data: {
+      labels: ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],
+      datasets: [
+        {
+          label: 'Your footprint',
+          data: trendData,
+          borderColor: '#1D9E75', backgroundColor: 'rgba(29,158,117,0.08)',
+          borderWidth: 2, pointRadius: 3, pointBackgroundColor: '#1D9E75',
+          fill: true, tension: 0.35,
+        },
+        {
+          label: 'World avg',
+          data: Array(12).fill(4.8),
+          borderColor: '#B4B2A9', borderWidth: 1.5,
+          borderDash: [4, 3], pointRadius: 0, fill: false,
+        }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { min: 2, max: 10, ticks: { font:{size:11}, callback: v => v + 't' }, grid: { color: 'rgba(128,128,128,0.08)' } },
+        x: { ticks: { font:{size:11} }, grid: { display: false } }
+      }
+    }
+  });
+
+  // Keyboard support for action items
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && e.target.classList.contains('action-item')) {
+      e.target.click();
+    }
+  });
+
+  renderBreakdown();
+  renderActions();
+  renderInsights();
+</script>
+</body>
+</html>

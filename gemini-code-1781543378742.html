@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Carbon Footprint Tracker</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css" />
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js" defer></script>
+  <script type="module" src="app.js" defer></script>
+</head>
+<body>
+<div class="container">
+
+  <header class="header">
+    <i class="ti ti-leaf header-icon" aria-hidden="true"></i>
+    <h1>My carbon footprint <span class="badge" id="trend-badge">↓ 12% this month</span></h1>
+  </header>
+
+  <nav class="tab-bar" role="tablist" aria-label="Navigation">
+    <button class="tab active" role="tab" aria-selected="true" aria-controls="tab-overview" id="btn-overview" data-tab="overview">
+      <i class="ti ti-chart-pie" aria-hidden="true"></i> Overview
+    </button>
+    <button class="tab" role="tab" aria-selected="false" aria-controls="tab-track" id="btn-track" data-tab="track">
+      <i class="ti ti-adjustments" aria-hidden="true"></i> Track
+    </button>
+    <button class="tab" role="tab" aria-selected="false" aria-controls="tab-actions" id="btn-actions" data-tab="actions">
+      <i class="ti ti-checklist" aria-hidden="true"></i> Actions
+    </button>
+    <button class="tab" role="tab" aria-selected="false" aria-controls="tab-insights" id="btn-insights" data-tab="insights">
+      <i class="ti ti-bulb" aria-hidden="true"></i> Insights
+    </button>
+  </nav>
+
+  <section class="section active" id="tab-overview" role="tabpanel" aria-labelledby="btn-overview">
+    <div class="metric-grid">
+      <div class="metric-card">
+        <div class="metric-label">Your footprint</div>
+        <div class="metric-value" id="total-val">7.2</div>
+        <div class="metric-sub">tonnes CO₂e / year</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Global avg</div>
+        <div class="metric-value">4.8</div>
+        <div class="metric-sub">tonnes CO₂e / year</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">1.5°C target</div>
+        <div class="metric-value">2.5</div>
+        <div class="metric-sub">tonnes CO₂e / year</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Actions done</div>
+        <div class="metric-value" id="actions-done-val">0</div>
+        <div class="metric-sub">of 6 this week</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2 class="card-title"><i class="ti ti-layout-distribute-horizontal" aria-hidden="true"></i> Emissions breakdown</h2>
+      <div id="breakdown-bars"></div>
+    </div>
+
+    <div class="card">
+      <h2 class="card-title"><i class="ti ti-users" aria-hidden="true"></i> How you compare</h2>
+      <div class="compare-grid">
+        <div class="compare-col">
+          <div class="compare-head">You</div>
+          <div class="compare-val you-val" id="cmp-you">7.2</div>
+          <div class="compare-sub">tonnes</div>
+        </div>
+        <div class="compare-col">
+          <div class="compare-head">India avg</div>
+          <div class="compare-val text-muted">1.9</div>
+          <div class="compare-sub">tonnes</div>
+        </div>
+        <div class="compare-col">
+          <div class="compare-head">World avg</div>
+          <div class="compare-val text-muted">4.8</div>
+          <div class="compare-sub">tonnes</div>
+        </div>
+      </div>
+      <div class="chart-legend">
+        <span class="legend-item"><span class="legend-dot dot-trend"></span> Your trend</span>
+        <span class="legend-item"><span class="legend-dot dot-world"></span> World avg</span>
+      </div>
+      <div class="chart-container">
+        <canvas id="trendChart" role="img" aria-label="Line chart tracking monthly carbon footprint trends.">
+          Monthly emissions from Jan to Dec showing a gradual decline from 8.1 to 6.4 tonnes.
+        </canvas>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="tab-track" role="tabpanel" aria-labelledby="btn-track">
+    <form id="tracker-form" onsubmit="event.preventDefault();">
+      <div class="card">
+        <h2 class="card-title"><i class="ti ti-car" aria-hidden="true"></i> Transport</h2>
+        <div class="slider-row">
+          <label class="slider-label" crystalline for="sl-car">Car km / week</label>
+          <input type="range" min="0" max="500" step="10" value="200" id="sl-car">
+          <span class="slider-val" id="out-car">200 km</span>
+        </div>
+        <div class="slider-row">
+          <label class="slider-label" for="sl-fly">Flights / year</label>
+          <input type="range" min="0" max="20" step="1" value="3" id="sl-fly">
+          <span class="slider-val" id="out-fly">3</span>
+        </div>
+        <div class="slider-row">
+          <label class="slider-label" for="sl-transit">Public transit use</label>
+          <input type="range" min="0" max="100" step="5" value="30" id="sl-transit">
+          <span class="slider-val" id="out-transit">30%</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2 class="card-title"><i class="ti ti-home" aria-hidden="true"></i> Home energy</h2>
+        <div class="slider-row">
+          <label class="slider-label" for="sl-elec">Electricity kWh / mo</label>
+          <input type="range" min="0" max="1000" step="20" value="300" id="sl-elec">
+          <span class="slider-val" id="out-elec">300</span>
+        </div>
+        <div class="slider-row">
+          <label class="slider-label" for="sl-gas">Gas / LPG use</label>
+          <input type="range" min="0" max="5" step="1" value="2" id="sl-gas">
+          <span class="slider-val" id="out-gas">Medium</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2 class="card-title"><i class="ti ti-salad" aria-hidden="true"></i> Diet &amp; lifestyle</h2>
+        <div class="slider-row">
+          <label class="slider-label" for="sl-meat">Meat meals / week</label>
+          <input type="range" min="0" max="21" step="1" value="7" id="sl-meat">
+          <span class="slider-val" id="out-meat">7</span>
+        </div>
+        <div class="slider-row">
+          <label class="slider-label" for="sl-shop">Shopping spend / mo</label>
+          <input type="range" min="0" max="500" step="10" value="150" id="sl-shop">
+          <span class="slider-val" id="out-shop">₹150</span>
+        </div>
+      </div>
+    </form>
+
+    <div class="calc-footer">
+      <div>
+        <div class="calc-total-label">Estimated footprint</div>
+        <div class="calc-total-val" id="calc-total-display">7.2 <span class="calc-total-unit">t CO₂e / yr</span></div>
+      </div>
+      <button type="button" class="cta" id="btn-get-tips">Get tips</button>
+    </div>
+  </section>
+
+  <section class="section" id="tab-actions" role="tabpanel" aria-labelledby="btn-actions">
+    <p class="section-desc">Tap an action to mark it done. Small changes add up.</p>
+    <div id="action-list"></div>
+  </section>
+
+  <section class="section" id="tab-insights" role="tabpanel" aria-labelledby="btn-insights">
+    <div id="insights-list"></div>
+  </section>
+
+  <footer class="footer-note">
+    Emissions estimates are approximate, based on global average emission factors.<br>
+    Data is stored locally in your browser — nothing is sent to any server.
+  </footer>
+
+</div>
+</body>
+</html>
